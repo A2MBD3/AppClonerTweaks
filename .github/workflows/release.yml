@@ -4,17 +4,20 @@ on:
   push:
     paths:
       - 'module/**'
-      - 'update.json'
     branches:
       - main
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
     
     - name: Get Version
       id: version
@@ -23,40 +26,33 @@ jobs:
         VERSION_CODE=$(grep 'versionCode=' module/module.prop | cut -d'=' -f2)
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+        echo "📱 Version: $VERSION ($VERSION_CODE)"
     
     - name: Build ZIP
       run: |
         cd module
         zip -r9 ../AppClonerTweaks-${{ steps.version.outputs.version }}.zip .
         cd ..
+        echo "📦 ZIP created"
     
-    - name: Check Tag
-      id: check_tag
-      run: |
-        TAG="${{ steps.version.outputs.version }}"
-        if git rev-parse "$TAG" >/dev/null 2>&1; then
-          echo "exists=true" >> $GITHUB_OUTPUT
-        else
-          echo "exists=false" >> $GITHUB_OUTPUT
-        fi
-    
-    - name: Create Tag
-      if: steps.check_tag.outputs.exists == 'false'
+    - name: Create/Update Tag
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
-        git tag ${{ steps.version.outputs.version }}
-        git push origin ${{ steps.version.outputs.version }}
+        TAG="${{ steps.version.outputs.version }}"
+        git tag -f $TAG
+        git push origin $TAG --force
+        echo "🏷️ Tag: $TAG"
     
     - name: Delete Old Release
-      if: steps.check_tag.outputs.exists == 'true'
       run: |
-        gh release delete ${{ steps.version.outputs.version }} --yes || true
+        gh release delete ${{ steps.version.outputs.version }} --yes 2>/dev/null || true
+        echo "🗑️ Old release deleted"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.version.outputs.version }}
         name: App Cloner Tweaks ${{ steps.version.outputs.version }}
@@ -64,16 +60,38 @@ jobs:
         body: |
           ## 📱 App Cloner Tweaks ${{ steps.version.outputs.version }}
           
-          ### What's New
-          - Updated module files
-          - Version code: ${{ steps.version.outputs.version_code }}
+          ### 🔄 Auto-generated Release
+          - **Version:** ${{ steps.version.outputs.version }}
+          - **Version Code:** ${{ steps.version.outputs.version_code }}
+          - **Commit:** ${{ github.sha }}
           
-          ### Download
-          - [AppClonerTweaks-${{ steps.version.outputs.version }}.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/AppClonerTweaks-${{ steps.version.outputs.version }}.zip)
+          ### 📥 Installation
+          Download ZIP → Magisk → Modules → Install from storage → Reboot
           
-          ### Installation
-          Install via Magisk Manager → Modules → Install from storage
+          ### 👨‍💻 Developer
+          Abdullah Al Mamun 🇧🇩 [@A2MBD3](https://t.me/A2MBD3)
         draft: false
         prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Update update.json
+      run: |
+        cat > update.json << EOF
+        {
+            "version": "${{ steps.version.outputs.version }}",
+            "versionCode": ${{ steps.version.outputs.version_code }},
+            "zipUrl": "https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/AppClonerTweaks-${{ steps.version.outputs.version }}.zip",
+            "changelog": "https://raw.githubusercontent.com/${{ github.repository }}/main/CHANGELOG.md"
+        }
+        EOF
+        echo "📝 update.json updated"
+    
+    - name: Commit update.json
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git add update.json
+        git commit -m "🔄 Auto-update to ${{ steps.version.outputs.version }}" || true
+        git push origin main
+        echo "🚀 update.json pushed"
