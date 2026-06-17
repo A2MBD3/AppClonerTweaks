@@ -1,7 +1,7 @@
 #!/system/bin/sh
 
 #=============================================
-# App Cloner Tweaks v3.0.0
+# App Cloner Tweaks v3.0.2
 # Developer: Abdullah Al Mamun 🇧🇩 (@A2MBD3)
 # For: Realme UI 1.0 | Android 10
 #=============================================
@@ -12,11 +12,11 @@ ROM=$(getprop ro.build.version.opporom 2>/dev/null || echo "Unknown")
 ANDROID=$(getprop ro.build.version.release 2>/dev/null || echo "Unknown")
 
 ui_print ""
-ui_print "   📱 App Cloner Tweaks v3.0.0"
+ui_print "   📱 App Cloner Tweaks v3.0.2"
 ui_print "   🔧 Realme UI Edition"
 ui_print ""
 ui_print "   Developer: Abdullah Al Mamun 🇧🇩"
-ui_print "   Telegram: @A2MBD3"
+ui_print "   Telegram/GitHub/Facebook: @A2MBD3"
 ui_print ""
 ui_print "   Device : $DEVICE"
 ui_print "   ROM    : $ROM"
