@@ -1,0 +1,79 @@
+name: Build & Release
+
+on:
+  push:
+    paths:
+      - 'module/**'
+      - 'update.json'
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Get Version
+      id: version
+      run: |
+        VERSION=$(grep 'version=' module/module.prop | cut -d'=' -f2)
+        VERSION_CODE=$(grep 'versionCode=' module/module.prop | cut -d'=' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+    
+    - name: Build ZIP
+      run: |
+        cd module
+        zip -r9 ../AppClonerTweaks-${{ steps.version.outputs.version }}.zip .
+        cd ..
+    
+    - name: Check Tag
+      id: check_tag
+      run: |
+        TAG="${{ steps.version.outputs.version }}"
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Create Tag
+      if: steps.check_tag.outputs.exists == 'false'
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git tag ${{ steps.version.outputs.version }}
+        git push origin ${{ steps.version.outputs.version }}
+    
+    - name: Delete Old Release
+      if: steps.check_tag.outputs.exists == 'true'
+      run: |
+        gh release delete ${{ steps.version.outputs.version }} --yes || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: App Cloner Tweaks ${{ steps.version.outputs.version }}
+        files: AppClonerTweaks-${{ steps.version.outputs.version }}.zip
+        body: |
+          ## 📱 App Cloner Tweaks ${{ steps.version.outputs.version }}
+          
+          ### What's New
+          - Updated module files
+          - Version code: ${{ steps.version.outputs.version_code }}
+          
+          ### Download
+          - [AppClonerTweaks-${{ steps.version.outputs.version }}.zip](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/AppClonerTweaks-${{ steps.version.outputs.version }}.zip)
+          
+          ### Installation
+          Install via Magisk Manager → Modules → Install from storage
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
