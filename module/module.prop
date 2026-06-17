@@ -1,7 +1,7 @@
 id=app_cloner_tweaks
 name=App Cloner Tweaks
-version=v3.0.0
-versionCode=30000
+version=v3.0.1
+versionCode=30001
 author=Abdullah Al Mamun 🇧🇩 (@A2MBD3)
-description=Systemless auto whitelist for Realme UI App Cloner. Auto-update on new app install. Realme UI 1 (Android 10).
+description=Auto whitelist for Realme UI App Cloner. Auto-update on new app install. Realme UI 1 (Android 10).
 updateJson=https://raw.githubusercontent.com/A2MBD3/AppClonerTweaks/main/update.json
